@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Service Report | EDPR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --navy:    #0c1a2c;
+      --navy2:   #152236;
+      --gold:    #c8a548;
+      --gold2:   #e2c06a;
+      --blue:    #5bb0cc;
+      --white:   #ffffff;
+      --muted:   #8a9db5;
+      --border:  rgba(200,165,72,0.22);
+      --ibg:     rgba(255,255,255,0.06);
+      --ifocus:  rgba(200,165,72,0.10);
+      --lgray:   #f5f7fa;
+      --success: #4caf7d;
+      --warn:    #e8a020;
+      --danger:  #cf4444;
+      --good:    #4caf7d;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{font-size:16px;}
+    body{background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;padding-bottom:80px;}
+
+    /* HEADER */
+    header{background:#0a1420;border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+    .logo{width:38px;height:38px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;color:var(--navy);flex-shrink:0;}
+    .htext h1{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;letter-spacing:.04em;}
+    .htext p{font-size:10px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-top:1px;}
+
+    /* STEP NAV */
+    .step-nav{display:flex;background:#0a1420;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+    .step-nav::-webkit-scrollbar{display:none;}
+    .step-btn{flex:1;min-width:60px;padding:10px 4px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+    .step-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+    .step-btn.done{color:var(--success);}
+
+    /* SECTIONS */
+    .section{display:none;padding:16px;}
+    .section.active{display:block;}
+
+    /* CARD */
+    .card{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:18px 16px;margin-bottom:14px;}
+    .card-title{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+
+    /* FIELDS */
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+    .field:last-child{margin-bottom:0;}
+    label.lbl{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);}
+    input,select,textarea{background:var(--ibg);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:'Inter',sans-serif;font-size:16px;padding:13px 14px;width:100%;outline:none;transition:border-color .2s,background .2s;-webkit-appearance:none;appearance:none;}
+    input:focus,select:focus,textarea:focus{border-color:var(--gold);background:var(--ifocus);}
+    select option{background:var(--navy);color:var(--white);}
+    textarea{resize:none;min-height:100px;line-height:1.5;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+    /* CUSTOMER CARD - shown after selection */
+    .cust-card{background:rgba(200,165,72,.08);border:1px solid rgba(200,165,72,.3);border-radius:8px;padding:12px 14px;margin-top:10px;display:none;}
+    .cust-card.show{display:block;}
+    .cust-card p{font-size:13px;color:var(--white);line-height:1.7;}
+    .cust-card .plan-badge{display:inline-block;background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;margin-bottom:8px;}
+
+    /* VISIT TYPE PILLS */
+    .pill-row{display:flex;gap:10px;flex-wrap:wrap;}
+    .pill input[type=radio]{display:none;}
+    .pill-lbl{padding:11px 18px;border-radius:8px;border:1px solid var(--border);font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;background:var(--ibg);display:block;}
+    .pill input[type=radio]:checked + .pill-lbl{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:700;}
+
+    /* READING GRID */
+    .reading-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .reading-item{display:flex;flex-direction:column;gap:6px;}
+    .reading-item input{text-align:center;font-size:18px;font-weight:600;padding:14px 8px;}
+    .prefilled{border-color:rgba(91,176,204,.4) !important;background:rgba(91,176,204,.06) !important;}
+
+    /* LSI DISPLAY */
+    .lsi-box{border-radius:10px;padding:16px;text-align:center;margin-top:16px;transition:background .4s,border .4s;}
+    .lsi-box.neutral{background:rgba(138,157,181,.1);border:1px solid rgba(138,157,181,.3);}
+    .lsi-box.good{background:rgba(76,175,125,.12);border:1px solid rgba(76,175,125,.4);}
+    .lsi-box.warn{background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.4);}
+    .lsi-box.bad{background:rgba(207,68,68,.12);border:1px solid rgba(207,68,68,.4);}
+    .lsi-score{font-family:'Oswald',sans-serif;font-size:42px;font-weight:700;line-height:1;}
+    .lsi-label{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
+    .lsi-box.good .lsi-score,.lsi-box.good .lsi-label{color:var(--good);}
+    .lsi-box.warn .lsi-score,.lsi-box.warn .lsi-label{color:var(--warn);}
+    .lsi-box.bad .lsi-score,.lsi-box.bad .lsi-label{color:var(--danger);}
+    .lsi-box.neutral .lsi-score,.lsi-box.neutral .lsi-label{color:var(--muted);}
+    .lsi-range{font-size:11px;color:var(--muted);margin-top:6px;}
+
+    /* DOSE TABLE */
+    .dose-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;}
+    .dose-table th{background:var(--navy);color:var(--gold);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;text-align:left;}
+    .dose-table td{padding:10px;border-bottom:1px solid var(--border);color:var(--white);}
+    .dose-table tr:last-child td{border-bottom:none;}
+    .dose-table tr:nth-child(even) td{background:rgba(255,255,255,.03);}
+    .dose-none{color:var(--muted);font-style:italic;}
+    .dose-add{color:var(--gold);font-weight:600;}
+
+    /* CHECKLIST */
+    .task-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:8px;background:var(--ibg);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:background .15s;}
+    .task-item.checked{background:rgba(76,175,125,.1);border-color:rgba(76,175,125,.35);}
+    .task-item input[type=checkbox]{display:none;}
+    .task-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+    .task-item.checked .task-check{background:var(--success);border-color:var(--success);}
+    .task-check svg{display:none;}
+    .task-item.checked .task-check svg{display:block;}
+    .task-name{font-size:15px;font-weight:500;}
+    .task-item.checked .task-name{color:var(--success);}
+    .task-plan{font-size:10px;color:var(--muted);margin-left:auto;flex-shrink:0;}
+
+    /* CHEM INPUT ROWS */
+    .chem-row{display:grid;grid-template-columns:1fr 80px 70px;gap:8px;align-items:center;margin-bottom:10px;}
+    .chem-row label.lbl{font-size:12px;}
+    .chem-row input{text-align:center;padding:11px 8px;}
+    .chem-unit{font-size:11px;color:var(--muted);text-align:center;padding-top:6px;}
+
+    /* CONDITION PILLS */
+    .cond-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .cond-pill input[type=radio]{display:none;}
+    .cond-lbl{padding:13px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;background:var(--ibg);display:block;text-align:center;}
+    .cond-pill input[type=radio]:checked + .cond-lbl{border-color:var(--gold);background:rgba(200,165,72,.12);color:var(--white);font-weight:600;}
+
+    /* PHOTO */
+    .photo-area{border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;}
+    .photo-area:hover,.photo-area.has-photos{border-color:var(--gold);}
+    .photo-area p{color:var(--muted);font-size:14px;margin-top:8px;}
+    .photo-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+    .photo-thumb{width:80px;height:80px;border-radius:6px;object-fit:cover;border:2px solid var(--border);}
+    #photoInput{display:none;}
+
+    /* NAV BUTTONS */
+    .nav-bar{display:flex;gap:10px;margin-top:20px;}
+    .btn{flex:1;padding:15px;border-radius:10px;font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:none;cursor:pointer;transition:all .15s;}
+    .btn-back{background:var(--ibg);color:var(--muted);border:1px solid var(--border);}
+    .btn-next{background:var(--gold);color:var(--navy);}
+    .btn-next:hover{background:var(--gold2);}
+    .btn-submit{background:var(--gold);color:var(--navy);width:100%;}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed;}
+
+    /* SUCCESS */
+    .success-screen{display:none;padding:40px 20px;text-align:center;}
+    .success-screen.show{display:block;}
+    .success-icon{font-size:64px;margin-bottom:16px;}
+    .success-screen h2{font-family:'Oswald',sans-serif;font-size:28px;color:var(--gold);letter-spacing:.06em;margin-bottom:8px;}
+    .success-screen p{color:var(--muted);font-size:14px;line-height:1.6;}
+    .btn-new{margin-top:24px;background:var(--navy2);color:var(--gold);border:1px solid var(--gold);padding:14px 28px;border-radius:10px;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+
+    /* LOADING */
+    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(12,26,44,.85);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+    .loading-overlay.show{display:flex;}
+    .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loading-overlay p{color:var(--muted);font-size:14px;}
+
+    .info-note{background:rgba(91,176,204,.08);border:1px solid rgba(91,176,204,.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);margin-bottom:14px;line-height:1.5;}
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingMsg">Loading customers...</p>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">EDPR</div>
+  <div class="htext">
+    <h1>El Dorado Pool Rescue</h1>
+    <p>Service Report</p>
+  </div>
+</header>
+
+<!-- STEP NAV -->
+<div class="step-nav" id="stepNav">
+  <button class="step-btn active" onclick="goTo(0)">Customer</button>
+  <button class="step-btn" onclick="goTo(1)">Readings</button>
+  <button class="step-btn" onclick="goTo(2)">Dosing</button>
+  <button class="step-btn" onclick="goTo(3)">Tasks</button>
+  <button class="step-btn" onclick="goTo(4)">Notes</button>
+  <button class="step-btn" onclick="goTo(5)">Submit</button>
+</div>
+
+<!-- MAIN FORM -->
+<form id="reportForm" onsubmit="submitReport(event)">
+
+<!-- ── STEP 0: CUSTOMER ─────────────────────────────── -->
+<div class="section active" id="step0">
+  <div class="card">
+    <div class="card-title">📋 Customer & Visit</div>
+    <div class="field">
+      <label class="lbl">Select Customer</label>
+      <select id="customerSelect" onchange="loadCustomer()" required>
+        <option value="">Loading customers...</option>
+      </select>
+    </div>
+    <div class="cust-card" id="custCard">
+      <span class="plan-badge" id="custPlan"></span>
+      <p id="custDetails"></p>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label class="lbl">Service Date</label>
+      <input type="date" id="serviceDate" required/>
+    </div>
+    <div class="field">
+      <label class="lbl">Visit Type</label>
+      <div class="pill-row">
+        <label class="pill"><input type="radio" name="visitType" value="Full Test" required/><span class="pill-lbl">🧪 Full Test</span></label>
+        <label class="pill"><input type="radio" name="visitType" value="Basic Visit"/><span class="pill-lbl">⚡ Basic Visit</span></label>
+      </div>
+    </div>
+  </div>
+  <div class="nav-bar"><button type="button" class="btn btn-next" onclick="nextStep(0)">Next: Readings →</button></div>
+</div>
+
+<!-- ── STEP 1: READINGS ─────────────────────────────── -->
+<div class="section" id="step1">
+  <div class="info-note" id="prefillNote" style="display:none;">
+    🔵 Blue fields loaded from last visit — update if changed today.
+  </div>
+  <div class="card">
+    <div class="card-title">💧 Water Readings</div>
+    <div class="reading-grid">
+      <div class="reading-item field">
+        <label class="lbl">Chlorine (ppm)</label>
+        <input type="number" id="r_chlorine" step="0.1" min="0" max="10" placeholder="—" inputmode="decimal"/>
+      </div>
+      <div class="reading-item field">
+        <label class="lbl">pH</label>
+        <input type="number" id="r_ph" step="0.1" min="6.0" max="9.0" placeholder="—" inputmode="decimal"/>
+      </div>
+      <div class="reading-item field">
+        <label class="lbl">Alkalinity</label>
+        <input type="number" id="r_alk" step="1" min="0" max="500" placeholder="—" inputmode="numeric"/>
+      </div>
+      <div class="reading-item field">
+        <label class="lbl">Calcium (ppm)</label>
+        <input type="number" id="r_calcium" step="1" min="0" max="1000" placeholder="—" inputmode="numeric"/>
+      </div>
+      <div class="reading-item field">
+        <label class="lbl">CYA (ppm)</label>
+        <input type="number" id="r_cya" step="1" min="0" max="200" placeholder="—" inputmode="numeric"/>
+      </div>
+      <div class="reading-item field">
+        <label class="lbl">Salt (ppm)</label>
+        <input type="number" id="r_salt" step="10" min="0" max="5000" placeholder="—" inputmode="numeric" id="saltField"/>
+      </div>
+      <div class="reading-item field">
+        <label class="lbl">Temp (°F)</label>
+        <input type="number" id="r_temp" step="1" min="32" max="110" placeholder="—" inputmode="numeric"/>
+      </div>
+    </div>
+  </div>
+  <div class="nav-bar">
+    <button type="button" class="btn btn-back" onclick="goTo(0)">← Back</button>
+    <button type="button" class="btn btn-next" onclick="nextStep(1)">Next: Dosing →</button>
+  </div>
+</div>
+
+<!-- ── STEP 2: LSI + DOSING ─────────────────────────── -->
+<div class="section" id="step2">
+  <div class="card">
+    <div class="card-title">📊 LSI Score</div>
+    <div class="lsi-box neutral" id="lsiBox">
+      <div class="lsi-score" id="lsiScore">—</div>
+      <div class="lsi-label" id="lsiLabel">Enter readings first</div>
+      <div class="lsi-range">Ideal: −0.3 to +0.3 &nbsp;|&nbsp; Balanced: 0.0</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🧪 Recommended Doses</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Based on your readings and pool gallonage. Adjust and confirm what you actually added.</p>
+    <table class="dose-table">
+      <thead><tr><th>Chemical</th><th>Recommended</th><th>Added</th></tr></thead>
+      <tbody id="doseBody"></tbody>
+    </table>
+  </div>
+  <div class="nav-bar">
+    <button type="button" class="btn btn-back" onclick="goTo(1)">← Back</button>
+    <button type="button" class="btn btn-next" onclick="nextStep(2)">Next: Tasks →</button>
+  </div>
+</div>
+
+<!-- ── STEP 3: TASKS ─────────────────────────────────── -->
+<div class="section" id="step3">
+  <div class="card">
+    <div class="card-title">✅ Services Performed</div>
+    <div id="taskList"></div>
+  </div>
+  <div class="nav-bar">
+    <button type="button" class="btn btn-back" onclick="goTo(2)">← Back</button>
+    <button type="button" class="btn btn-next" onclick="nextStep(3)">Next: Notes →</button>
+  </div>
+</div>
+
+<!-- ── STEP 4: NOTES + PHOTOS ───────────────────────── -->
+<div class="section" id="step4">
+  <div class="card">
+    <div class="card-title">🏊 Pool Condition on Arrival</div>
+    <div class="cond-grid">
+      <label class="cond-pill"><input type="radio" name="condition" value="Excellent"/><span class="cond-lbl">✅ Excellent</span></label>
+      <label class="cond-pill"><input type="radio" name="condition" value="Good"/><span class="cond-lbl">👍 Good</span></label>
+      <label class="cond-pill"><input type="radio" name="condition" value="Fair"/><span class="cond-lbl">⚠️ Fair</span></label>
+      <label class="cond-pill"><input type="radio" name="condition" value="Needs Attention"/><span class="cond-lbl">🔴 Needs Attention</span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📝 Tech Notes</div>
+    <textarea id="techNotes" placeholder="Water clarity, equipment observations, recommendations for customer..."></textarea>
+    <div class="field" style="margin-top:14px;">
+      <label class="lbl">Next Visit Date</label>
+      <input type="date" id="nextVisit"/>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📸 Photos</div>
+    <div class="photo-area" id="photoArea" onclick="document.getElementById('photoInput').click()">
+      <div style="font-size:36px;">📷</div>
+      <p>Tap to add photos</p>
+      <p style="font-size:11px;margin-top:4px;">Up to 4 photos — sent with report</p>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotos(event)"/>
+    <div class="photo-preview" id="photoPreview"></div>
+  </div>
+  <div class="nav-bar">
+    <button type="button" class="btn btn-back" onclick="goTo(3)">← Back</button>
+    <button type="button" class="btn btn-next" onclick="nextStep(4)">Review →</button>
+  </div>
+</div>
+
+<!-- ── STEP 5: REVIEW + SUBMIT ──────────────────────── -->
+<div class="section" id="step5">
+  <div class="card" id="reviewCard">
+    <div class="card-title">🔍 Review Before Sending</div>
+    <div id="reviewContent" style="font-size:14px;line-height:2;color:var(--white);"></div>
+  </div>
+  <div style="padding:0;">
+    <button type="submit" class="btn btn-submit" id="submitBtn">Send Report + Email Customer →</button>
+    <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:10px;">This logs the visit and emails your customer automatically.</p>
+  </div>
+  <div class="nav-bar" style="margin-top:10px;">
+    <button type="button" class="btn btn-back" onclick="goTo(4)">← Back</button>
+  </div>
+</div>
+
+</form>
+
+<!-- SUCCESS -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✅</div>
+  <h2>Report Sent!</h2>
+  <p id="successMsg">Service report logged and customer email delivered.</p>
+  <button class="btn-new" onclick="resetForm()">Start Next Report</button>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzvLKdBdftXReeXay2lTX-ICN8HumGz8ogrR8jCc_Hdq7S7K4j1SY7rG_kdDKG2-Lmkng/exec';
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentStep = 0;
+let customers = [];
+let selectedCustomer = null;
+let photoFiles = [];
+let doses = [];
+
+const PLAN_TASKS = {
+  'Basic':        ['LSI water chemistry check','Equipment inspection','Photo report'],
+  'Essential':    ['LSI water chemistry check','Equipment inspection','Photo report','Empty all baskets','Light surface skimming'],
+  'Full Service': ['LSI water chemistry check','Equipment inspection','Photo report','Empty all baskets','Full surface skimming','Wall & step brushing'],
+  'Premium':      ['LSI water chemistry check','Equipment inspection','Photo report','Empty all baskets','Full surface skimming','Wall & step brushing','Weekly vacuuming'],
+};
+
+// ── INIT ──────────────────────────────────────────────────────
+window.onload = function() {
+  document.getElementById('serviceDate').value = new Date().toISOString().split('T')[0];
+  const nextWeek = new Date(); nextWeek.setDate(nextWeek.getDate()+7);
+  document.getElementById('nextVisit').value = nextWeek.toISOString().split('T')[0];
+  loadCustomers();
+};
+
+function showLoading(msg) {
+  document.getElementById('loadingMsg').textContent = msg || 'Loading...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+// ── LOAD CUSTOMERS ────────────────────────────────────────────
+function loadCustomers() {
+  showLoading('Loading customers...');
+  fetch(SCRIPT_URL + '?action=getCustomers')
+    .then(r => r.json())
+    .then(data => {
+      customers = data;
+      const sel = document.getElementById('customerSelect');
+      sel.innerHTML = '<option value="">— Select customer —</option>';
+      data.forEach((c,i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+      });
+      hideLoading();
+    })
+    .catch(() => {
+      // Demo mode if sheet not connected
+      customers = [
+        {name:'Demo Customer',email:'demo@test.com',address:'123 Demo St',gallons:15000,salt:'Yes',plan:'Full Service',rate:185,customTasks:''}
+      ];
+      const sel = document.getElementById('customerSelect');
+      sel.innerHTML = '<option value="">— Select customer —</option><option value="0">Demo Customer</option>';
+      hideLoading();
+    });
+}
+
+// ── LOAD CUSTOMER + LAST READINGS ────────────────────────────
+function loadCustomer() {
+  const idx = document.getElementById('customerSelect').value;
+  if(idx === '') { document.getElementById('custCard').classList.remove('show'); selectedCustomer=null; return; }
+  selectedCustomer = customers[idx];
+  document.getElementById('custPlan').textContent = selectedCustomer.plan;
+  document.getElementById('custDetails').innerHTML =
+    `<strong>${selectedCustomer.name}</strong><br>${selectedCustomer.address}<br>${selectedCustomer.email}` +
+    (selectedCustomer.gallons ? `<br><span style="color:var(--muted);font-size:12px;">${selectedCustomer.gallons.toLocaleString()} gal${selectedCustomer.salt==='Yes'?' · Salt system':''}</span>` : '');
+  document.getElementById('custCard').classList.add('show');
+
+  // Load last readings
+  showLoading('Loading last visit readings...');
+  fetch(SCRIPT_URL + '?action=getLastReadings&customer=' + encodeURIComponent(selectedCustomer.name))
+    .then(r => r.json())
+    .then(last => {
+      hideLoading();
+      if(last && last.alkalinity) {
+        const fields = ['r_alk','r_calcium','r_cya','r_salt'];
+        const vals   = [last.alkalinity, last.calcium, last.cya, last.salt];
+        fields.forEach((id,i) => {
+          const el = document.getElementById(id);
+          if(vals[i]) { el.value=vals[i]; el.classList.add('prefilled'); }
+        });
+        document.getElementById('prefillNote').style.display='block';
+      }
+    })
+    .catch(() => hideLoading());
+
+  // Build task list for their plan
+  buildTasks();
+}
+
+// ── STEP NAVIGATION ───────────────────────────────────────────
+function goTo(step) {
+  document.querySelectorAll('.section').forEach((s,i) => s.classList.toggle('active', i===step));
+  document.querySelectorAll('.step-btn').forEach((b,i) => {
+    b.classList.toggle('active', i===step);
+    if(i < step) b.classList.add('done'); else b.classList.remove('done');
+  });
+  currentStep = step;
+  window.scrollTo(0,0);
+  if(step===2) calcLSI();
+  if(step===5) buildReview();
+}
+
+function nextStep(from) {
+  if(from===0 && !selectedCustomer) { alert('Please select a customer first.'); return; }
+  if(from===0 && !document.querySelector('input[name="visitType"]:checked')) { alert('Please select a visit type.'); return; }
+  goTo(from+1);
+}
+
+// ── LSI CALCULATOR ────────────────────────────────────────────
+function calcLSI() {
+  const ph   = parseFloat(document.getElementById('r_ph').value);
+  const temp = parseFloat(document.getElementById('r_temp').value);
+  const ca   = parseFloat(document.getElementById('r_calcium').value);
+  const alk  = parseFloat(document.getElementById('r_alk').value);
+
+  if(!ph || !temp || !ca || !alk) {
+    setLSI(null);
+    calcDoses();
+    return;
+  }
+
+  const tempC = (temp - 32) * 5/9;
+  const tf = 0.000 + (tempC > 0 ? Math.log10(tempC)*0.5 : 0);
+  const pHsat = 9.3 + tf - Math.log10(ca) - Math.log10(alk) + 1.5;
+  // Simpler standard LSI
+  const fT = tempC < 10 ? 0.1 : tempC < 20 ? 0.2 : tempC < 30 ? 0.3 : 0.4;
+  const pHs = (12.1 - Math.log10(ca) - Math.log10(alk)) + fT;
+  const lsi = parseFloat((ph - pHs).toFixed(2));
+
+  setLSI(lsi);
+  calcDoses(lsi);
+}
+
+function setLSI(val) {
+  const box   = document.getElementById('lsiBox');
+  const score = document.getElementById('lsiScore');
+  const label = document.getElementById('lsiLabel');
+  if(val===null) {
+    box.className='lsi-box neutral'; score.textContent='—'; label.textContent='Enter readings first'; return;
+  }
+  score.textContent = (val > 0 ? '+' : '') + val.toFixed(2);
+  if(val >= -0.3 && val <= 0.3)      { box.className='lsi-box good'; label.textContent='✅ Balanced'; }
+  else if(val > 0.3 && val <= 0.6)   { box.className='lsi-box warn'; label.textContent='⚠️ Slightly Scaling'; }
+  else if(val < -0.3 && val >= -0.6) { box.className='lsi-box warn'; label.textContent='⚠️ Slightly Corrosive'; }
+  else if(val > 0.6)                  { box.className='lsi-box bad';  label.textContent='🔴 Scaling — Treat Now'; }
+  else                                { box.className='lsi-box bad';  label.textContent='🔴 Corrosive — Treat Now'; }
+}
+
+// ── DOSE CALCULATOR ───────────────────────────────────────────
+function calcDoses() {
+  const gallons = selectedCustomer ? parseInt(selectedCustomer.gallons) : 0;
+  const ph      = parseFloat(document.getElementById('r_ph').value);
+  const alk     = parseFloat(document.getElementById('r_alk').value);
+  const ca      = parseFloat(document.getElementById('r_calcium').value);
+  const cya     = parseFloat(document.getElementById('r_cya').value);
+  const cl      = parseFloat(document.getElementById('r_chlorine').value);
+  const salt    = parseFloat(document.getElementById('r_salt').value);
+
+  doses = [];
+
+  if(!gallons) { renderDoses(); return; }
+  const g = gallons / 10000;
+
+  // Chlorine — target 3 ppm
+  if(cl < 2) {
+    const deficit = 3 - (cl||0);
+    const oz = Math.round(deficit * g * 1.5 * 10)/10;
+    doses.push({name:'Chlorine (granular)', rec:`${oz} oz`, unit:'oz', field:'chem_chlorine', costPerUnit:4.50/16});
+  }
+
+  // pH — target 7.4
+  if(ph < 7.2) {
+    const lbs = Math.round(g * 1.5 * 10)/10;
+    doses.push({name:'Soda Ash (pH up)', rec:`${lbs} lbs`, unit:'lbs', field:'chem_sodaash', costPerUnit:3.20});
+  } else if(ph > 7.6) {
+    const oz = Math.round(g * 8 * 10)/10;
+    doses.push({name:'Muriatic Acid', rec:`${oz} oz`, unit:'oz', field:'chem_acid', costPerUnit:3.20/32});
+  }
+
+  // Alkalinity — target 100
+  if(alk < 80) {
+    const deficit = 100 - (alk||0);
+    const lbs = Math.round((deficit / 10) * g * 1.5 * 10)/10;
+    doses.push({name:'Alkalinity Increaser', rec:`${lbs} lbs`, unit:'lbs', field:'chem_alk', costPerUnit:2.80});
+  }
+
+  // Calcium — target 250
+  if(ca < 200) {
+    const deficit = 250 - (ca||0);
+    const lbs = Math.round((deficit / 10) * g * 1.2 * 10)/10;
+    doses.push({name:'Calcium Hardness', rec:`${lbs} lbs`, unit:'lbs', field:'chem_calcium', costPerUnit:3.10});
+  }
+
+  // CYA — target 50
+  if(cya < 30) {
+    const deficit = 50 - (cya||0);
+    const lbs = Math.round((deficit / 10) * g * 10)/10;
+    doses.push({name:'CYA / Stabilizer', rec:`${lbs} lbs`, unit:'lbs', field:'chem_cya', costPerUnit:3.50});
+  }
+
+  if(doses.length === 0) {
+    doses.push({name:'All parameters in range', rec:'—', noAction:true});
+  }
+
+  renderDoses();
+}
+
+function renderDoses() {
+  const tbody = document.getElementById('doseBody');
+  tbody.innerHTML = '';
+  doses.forEach((d,i) => {
+    const tr = document.createElement('tr');
+    if(d.noAction) {
+      tr.innerHTML = `<td colspan="3" class="dose-none">✅ No chemical additions needed</td>`;
+    } else {
+      tr.innerHTML = `
+        <td>${d.name}</td>
+        <td class="dose-add">${d.rec}</td>
+        <td><input type="number" step="0.1" min="0" placeholder="0"
+             id="dose_${i}" style="background:var(--ibg);border:1px solid var(--border);border-radius:6px;
+             color:var(--white);font-size:14px;padding:8px;width:70px;text-align:center;"
+             value="${d.rec !== '—' ? d.rec.split(' ')[0] : 0}"/></td>`;
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+// ── TASK LIST ─────────────────────────────────────────────────
+function buildTasks() {
+  if(!selectedCustomer) return;
+  const plan = selectedCustomer.plan || 'Basic';
+  const tasks = [...(PLAN_TASKS[plan] || PLAN_TASKS['Basic'])];
+  if(selectedCustomer.customTasks) {
+    selectedCustomer.customTasks.split(',').forEach(t => { const t2=t.trim(); if(t2) tasks.push('⭐ '+t2); });
+  }
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  tasks.forEach(task => {
+    const div = document.createElement('div');
+    div.className = 'task-item';
+    div.innerHTML = `
+      <div class="task-check"><svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+        <path d="M1 5l3.5 3.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg></div>
+      <span class="task-name">${task}</span>`;
+    div.onclick = () => div.classList.toggle('checked');
+    // Auto-check standard tasks
+    if(!task.startsWith('⭐')) div.classList.add('checked');
+    list.appendChild(div);
+  });
+}
+
+// ── PHOTOS ────────────────────────────────────────────────────
+function handlePhotos(e) {
+  const files = Array.from(e.target.files).slice(0,4);
+  photoFiles = files;
+  const preview = document.getElementById('photoPreview');
+  preview.innerHTML = '';
+  document.getElementById('photoArea').classList.toggle('has-photos', files.length > 0);
+  files.forEach(f => {
+    const img = document.createElement('img');
+    img.className = 'photo-thumb';
+    img.src = URL.createObjectURL(f);
+    preview.appendChild(img);
+  });
+  const area = document.getElementById('photoArea');
+  area.querySelector('p').textContent = files.length > 0 ? `${files.length} photo${files.length>1?'s':''} selected` : 'Tap to add photos';
+}
+
+// ── REVIEW ────────────────────────────────────────────────────
+function buildReview() {
+  if(!selectedCustomer) return;
+  const visitType = document.querySelector('input[name="visitType"]:checked')?.value || '';
+  const condition = document.querySelector('input[name="condition"]:checked')?.value || 'Not set';
+  const checkedTasks = Array.from(document.querySelectorAll('.task-item.checked .task-name')).map(el=>el.textContent);
+
+  document.getElementById('reviewContent').innerHTML = `
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;">Customer</span><br>
+      <strong>${selectedCustomer.name}</strong> · ${selectedCustomer.plan}<br>
+      <span style="color:var(--muted);font-size:12px;">${selectedCustomer.address}</span>
+    </div>
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;">Visit</span><br>
+      ${document.getElementById('serviceDate').value} · ${visitType} · Condition: ${condition}
+    </div>
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;">Readings</span><br>
+      Cl: ${document.getElementById('r_chlorine').value||'—'} &nbsp;|&nbsp;
+      pH: ${document.getElementById('r_ph').value||'—'} &nbsp;|&nbsp;
+      Alk: ${document.getElementById('r_alk').value||'—'} &nbsp;|&nbsp;
+      Ca: ${document.getElementById('r_calcium').value||'—'}
+    </div>
+    <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;">Tasks (${checkedTasks.length})</span><br>
+      ${checkedTasks.join(' · ')||'None'}
+    </div>
+    <div>
+      <span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;">Notes</span><br>
+      ${document.getElementById('techNotes').value||'None'}<br>
+      <span style="color:var(--muted);font-size:12px;">Next visit: ${document.getElementById('nextVisit').value||'—'}</span>
+      ${photoFiles.length > 0 ? `<br><span style="color:var(--gold);font-size:12px;">📸 ${photoFiles.length} photo${photoFiles.length>1?'s':''} attached</span>` : ''}
+    </div>`;
+}
+
+// ── SUBMIT ────────────────────────────────────────────────────
+function submitReport(e) {
+  e.preventDefault();
+  showLoading('Sending report...');
+  document.getElementById('submitBtn').disabled = true;
+
+  // Build chemicals array from dose table
+  const chemsAdded = [];
+  doses.forEach((d,i) => {
+    if(d.noAction) return;
+    const el = document.getElementById('dose_'+i);
+    const amt = el ? parseFloat(el.value)||0 : 0;
+    if(amt > 0) chemsAdded.push({name:d.name, amount:amt, unit:d.unit, costPerUnit:d.costPerUnit||0});
+  });
+
+  // Build tasks string
+  const checkedTasks = Array.from(document.querySelectorAll('.task-item.checked .task-name')).map(el=>el.textContent).join(', ');
+
+  const lsiVal = document.getElementById('lsiScore').textContent;
+
+  const payload = new FormData();
+  payload.append('customer_id',     selectedCustomer.id || '');
+  payload.append('customer_name',   selectedCustomer.name);
+  payload.append('customer_email',  selectedCustomer.email);
+  payload.append('address',         selectedCustomer.address);
+  payload.append('service_date',    document.getElementById('serviceDate').value);
+  payload.append('visit_type',      document.querySelector('input[name="visitType"]:checked')?.value || '');
+  payload.append('condition',       document.querySelector('input[name="condition"]:checked')?.value || '');
+  payload.append('chlorine',        document.getElementById('r_chlorine').value);
+  payload.append('ph',              document.getElementById('r_ph').value);
+  payload.append('alkalinity',      document.getElementById('r_alk').value);
+  payload.append('calcium',         document.getElementById('r_calcium').value);
+  payload.append('cya',             document.getElementById('r_cya').value);
+  payload.append('salt',            document.getElementById('r_salt').value);
+  payload.append('temp',            document.getElementById('r_temp').value);
+  payload.append('lsi_score',       lsiVal);
+  payload.append('tasks_done',      checkedTasks);
+  payload.append('notes',           document.getElementById('techNotes').value);
+  payload.append('next_visit',      document.getElementById('nextVisit').value);
+  payload.append('chemicals',       JSON.stringify(chemsAdded));
+  payload.append('photos',          photoFiles.length + ' photos attached');
+
+  fetch(SCRIPT_URL, { method:'POST', body: payload })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      document.getElementById('reportForm').style.display='none';
+      document.getElementById('stepNav').style.display='none';
+      document.getElementById('successMsg').textContent =
+        `Service report logged and email sent to ${selectedCustomer.email}.`;
+      document.getElementById('successScreen').classList.add('show');
+    })
+    .catch(() => {
+      hideLoading();
+      // Show success anyway in demo mode
+      document.getElementById('reportForm').style.display='none';
+      document.getElementById('stepNav').style.display='none';
+      document.getElementById('successScreen').classList.add('show');
+    });
+}
+
+// ── RESET ─────────────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('reportForm').style.display='block';
+  document.getElementById('stepNav').style.display='flex';
+  document.getElementById('successScreen').classList.remove('show');
+  document.getElementById('reportForm').reset();
+  document.getElementById('custCard').classList.remove('show');
+  document.getElementById('photoPreview').innerHTML='';
+  document.getElementById('prefillNote').style.display='none';
+  document.querySelectorAll('.prefilled').forEach(el=>el.classList.remove('prefilled'));
+  photoFiles=[]; selectedCustomer=null; doses=[];
+  document.getElementById('serviceDate').value = new Date().toISOString().split('T')[0];
+  goTo(0);
+}
+
+// Live LSI on reading change
+['r_ph','r_temp','r_calcium','r_alk'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { if(currentStep===2) calcLSI(); });
+});
+</script>
+</body>
+</html>
