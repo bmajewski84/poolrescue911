@@ -333,10 +333,15 @@ function createInvoice_(params) {
 
   const amountCents = Math.round(amount * 100);
 
+  let productName = 'Pool Service - ' + customerName + ' - ' + billingMonth;
+  if (params.extra_description) {
+    productName += ' (+ ' + params.extra_description + ')';
+  }
+
   const price = stripeRequest_('prices', {
     'currency': 'usd',
     'unit_amount': String(amountCents),
-    'product_data[name]': 'Pool Service - ' + customerName + ' - ' + billingMonth
+    'product_data[name]': productName
   });
 
   const paymentLink = stripeRequest_('payment_links', {
@@ -364,6 +369,8 @@ function logInvoice_(params, billingMonth, amount, url) {
     'Billing Month': billingMonth,
     'Service Fee': Number(params.service_fee) || 0,
     'Chemical Charges': Number(params.chemical_total) || 0,
+    'Extra Charges': Number(params.extra_amount) || 0,
+    'Extra Description': params.extra_description || '',
     'Total': amount,
     'Payment Link': url,
     'Status': 'Sent'

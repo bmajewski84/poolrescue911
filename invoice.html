@@ -30,6 +30,9 @@
     .btn-link{margin-top:10px;display:block;text-align:center;background:var(--ibg);color:var(--success);border:1px solid var(--success);padding:10px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;}
     .loading{text-align:center;color:var(--muted);padding:40px;}
     .err{color:var(--danger);font-size:12px;margin-top:8px;}
+    .extra-row{display:flex;gap:8px;margin-top:10px;}
+    .extra-desc{flex:2;background:var(--ibg);border:1px solid var(--border);border-radius:6px;color:#fff;font-size:12px;padding:8px;}
+    .extra-amt{flex:1;background:var(--ibg);border:1px solid var(--border);border-radius:6px;color:#fff;font-size:12px;padding:8px;text-align:right;}
   </style>
 </head>
 <body>
@@ -78,7 +81,11 @@ function renderList(customers) {
       <div class="cust-plan">${c.plan}</div>
       <div class="row"><span>Monthly Service Fee</span><span>$${c.serviceFee.toFixed(2)}</span></div>
       <div class="row"><span>Chemical Charges</span><span>$${c.chemicalTotal.toFixed(2)}</span></div>
-      <div class="row total"><span>Total Due</span><span>$${c.total.toFixed(2)}</span></div>
+      <div class="extra-row">
+        <input type="text" class="extra-desc" id="extraDesc_${i}" placeholder="Extra item (e.g. repair, salt cell)">
+        <input type="number" class="extra-amt" id="extraAmt_${i}" placeholder="$0.00" step="0.01" min="0" oninput="updateTotal(${i})">
+      </div>
+      <div class="row total"><span>Total Due</span><span id="totalDisplay_${i}">$${c.total.toFixed(2)}</span></div>
       <button class="btn" id="btn_${i}" onclick="generateLink(${i})">Generate Payment Link</button>
       <div id="result_${i}"></div>
     `;
@@ -87,11 +94,22 @@ function renderList(customers) {
   });
 }
 
+function updateTotal(i) {
+  const card = document.querySelectorAll('.card')[i];
+  const c = JSON.parse(card.dataset.customer);
+  const extra = parseFloat(document.getElementById('extraAmt_' + i).value) || 0;
+  document.getElementById('totalDisplay_' + i).textContent = '$' + (c.total + extra).toFixed(2);
+}
+
 function generateLink(i) {
   const card = document.querySelectorAll('.card')[i];
   const c = JSON.parse(card.dataset.customer);
   const btn = document.getElementById('btn_' + i);
   const result = document.getElementById('result_' + i);
+  const extraAmt = parseFloat(document.getElementById('extraAmt_' + i).value) || 0;
+  const extraDesc = document.getElementById('extraDesc_' + i).value.trim();
+  const total = Math.round((c.total + extraAmt) * 100) / 100;
+
   btn.disabled = true;
   btn.textContent = 'Generating...';
 
@@ -103,7 +121,9 @@ function generateLink(i) {
   payload.append('billing_month', c.billingMonth);
   payload.append('service_fee', c.serviceFee);
   payload.append('chemical_total', c.chemicalTotal);
-  payload.append('amount', c.total);
+  payload.append('extra_description', extraDesc);
+  payload.append('extra_amount', extraAmt);
+  payload.append('amount', total);
 
   fetch(SCRIPT_URL, { method: 'POST', body: payload })
     .then(r => r.json())
