@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Invoices | EDPR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --navy:#0c1a2c;--navy2:#152236;--gold:#c8a548;--gold2:#e2c06a;
+      --muted:#8a9db5;--border:rgba(200,165,72,0.22);--ibg:rgba(255,255,255,0.06);
+      --success:#4caf7d;--danger:#cf4444;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--navy);color:#fff;font-family:'Inter',sans-serif;min-height:100vh;padding-bottom:60px;}
+    header{background:#0a1420;border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+    .logo{width:38px;height:38px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;color:var(--navy);flex-shrink:0;}
+    .htext h1{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;letter-spacing:.04em;}
+    .htext p{font-size:10px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-top:1px;}
+    .container{padding:16px;max-width:700px;margin:0 auto;}
+    .month-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+    .month-bar h2{font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:.05em;color:var(--gold);}
+    .card{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+    .cust-name{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;}
+    .cust-plan{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+    .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:10px;}
+    .row.total{color:#fff;font-weight:600;font-size:15px;border-top:1px solid var(--border);padding-top:8px;margin-top:8px;}
+    .btn{margin-top:14px;width:100%;padding:12px;border-radius:8px;font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:none;cursor:pointer;background:var(--gold);color:var(--navy);}
+    .btn:disabled{opacity:.5;cursor:not-allowed;}
+    .btn-link{margin-top:10px;display:block;text-align:center;background:var(--ibg);color:var(--success);border:1px solid var(--success);padding:10px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;}
+    .loading{text-align:center;color:var(--muted);padding:40px;}
+    .err{color:var(--danger);font-size:12px;margin-top:8px;}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EDPR</div>
+  <div class="htext">
+    <h1>El Dorado Pool Rescue</h1>
+    <p>Monthly Invoices</p>
+  </div>
+</header>
+
+<div class="container">
+  <div class="month-bar">
+    <h2 id="monthLabel">Loading...</h2>
+  </div>
+  <div id="list" class="loading">Loading invoice data...</div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSrKboU-SBcR_tKWJGzx6VnthuZEnHz7g7tybRcwuOYAknUt8RUqllB8uImQLdeNA0Lw/exec';
+
+window.onload = loadInvoices;
+
+function loadInvoices() {
+  fetch(SCRIPT_URL + '?action=getInvoiceData')
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { document.getElementById('list').innerHTML = `<p class="err">${data.error}</p>`; return; }
+      document.getElementById('monthLabel').textContent = data[0] ? data[0].billingMonth : 'This Month';
+      renderList(data);
+    })
+    .catch(() => { document.getElementById('list').innerHTML = '<p class="err">Could not load invoice data.</p>'; });
+}
+
+function renderList(customers) {
+  const list = document.getElementById('list');
+  list.className = '';
+  list.innerHTML = '';
+
+  customers.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="cust-name">${c.name}</div>
+      <div class="cust-plan">${c.plan}</div>
+      <div class="row"><span>Monthly Service Fee</span><span>$${c.serviceFee.toFixed(2)}</span></div>
+      <div class="row"><span>Chemical Charges</span><span>$${c.chemicalTotal.toFixed(2)}</span></div>
+      <div class="row total"><span>Total Due</span><span>$${c.total.toFixed(2)}</span></div>
+      <button class="btn" id="btn_${i}" onclick="generateLink(${i})">Generate Payment Link</button>
+      <div id="result_${i}"></div>
+    `;
+    list.appendChild(card);
+    card.dataset.customer = JSON.stringify(c);
+  });
+}
+
+function generateLink(i) {
+  const card = document.querySelectorAll('.card')[i];
+  const c = JSON.parse(card.dataset.customer);
+  const btn = document.getElementById('btn_' + i);
+  const result = document.getElementById('result_' + i);
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  const payload = new FormData();
+  payload.append('action', 'createInvoice');
+  payload.append('customer_id', c.id);
+  payload.append('customer_name', c.name);
+  payload.append('customer_email', c.email);
+  payload.append('billing_month', c.billingMonth);
+  payload.append('service_fee', c.serviceFee);
+  payload.append('chemical_total', c.chemicalTotal);
+  payload.append('amount', c.total);
+
+  fetch(SCRIPT_URL, { method: 'POST', body: payload })
+    .then(r => r.json())
+    .then(res => {
+      if (res.error) {
+        result.innerHTML = `<p class="err">${res.error}</p>`;
+        btn.disabled = false;
+        btn.textContent = 'Generate Payment Link';
+        return;
+      }
+      btn.style.display = 'none';
+      result.innerHTML = `<a class="btn-link" href="${res.url}" target="_blank">Open Payment Link →</a>`;
+    })
+    .catch(() => {
+      result.innerHTML = '<p class="err">Request failed.</p>';
+      btn.disabled = false;
+      btn.textContent = 'Generate Payment Link';
+    });
+}
+</script>
+</body>
+</html>

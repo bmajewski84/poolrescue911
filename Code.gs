@@ -17,6 +17,7 @@ const SPREADSHEET_ID = '1AjxwtbRM3mtNMlEu_xxxl8Bb27Le7jyXog7g3z3XM0A';
 const CUSTOMERS_SHEET_NAMES = ['Customers'];
 const SERVICE_REPORTS_SHEET_NAMES = ['Service Log', 'Service Reports', 'Visits', 'Reports'];
 const CHEMICAL_LOG_SHEET_NAMES = ['Chemical Log', 'Chemical Usage'];
+const MONTHLY_INVOICE_SHEET_NAMES = ['Monthly Invoice'];
 
 function getSpreadsheet_() {
   return SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -63,11 +64,19 @@ function doGet(e) {
     return jsonResponse_(getLastReadings_(e.parameter.customer));
   }
 
+  if (action === 'getInvoiceData') {
+    return jsonResponse_(getInvoiceData_(e.parameter.month));
+  }
+
   return jsonResponse_({ error: 'Unknown action: ' + action });
 }
 
 function doPost(e) {
   const params = e.parameter;
+
+  if (params.action === 'createInvoice') {
+    return jsonResponse_(createInvoice_(params));
+  }
 
   if (!params.customer_name) {
     return jsonResponse_({ error: 'Missing customer_name' });
@@ -252,6 +261,116 @@ function sendServiceEmail_(params, chemicals, photos) {
     // Don't fail the whole request if email sending fails.
     console.error('Email send failed: ' + err);
   }
+}
+
+// ── Invoicing / Stripe ───────────────────────────────────────
+
+function getCurrentBillingMonth_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MMMM yyyy');
+}
+
+// Returns each active customer's monthly service fee, chemical charges
+// for the given billing month, and the total due.
+function getInvoiceData_(month) {
+  const billingMonth = month || getCurrentBillingMonth_();
+
+  const customers = getCustomers_();
+
+  const ss = getSpreadsheet_();
+  const chemSheet = getSheetByNames_(ss, CHEMICAL_LOG_SHEET_NAMES);
+  const chemRows = chemSheet ? sheetToObjects_(chemSheet) : [];
+
+  return customers.map(c => {
+    const chemicalTotal = chemRows
+      .filter(r => String(r['Customer ID']).trim() === String(c.id).trim()
+                 && String(r['Billed Month']).trim() === billingMonth)
+      .reduce((sum, r) => sum + (Number(r['Line Total ($)']) || 0), 0);
+
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      plan: c.plan,
+      serviceFee: c.rate,
+      chemicalTotal: Math.round(chemicalTotal * 100) / 100,
+      total: Math.round((c.rate + chemicalTotal) * 100) / 100,
+      billingMonth: billingMonth
+    };
+  });
+}
+
+function getStripeKey_() {
+  const key = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY');
+  if (!key) throw new Error('STRIPE_SECRET_KEY is not set in Script Properties.');
+  return key;
+}
+
+function stripeRequest_(path, payload) {
+  const response = UrlFetchApp.fetch('https://api.stripe.com/v1/' + path, {
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + getStripeKey_() },
+    payload: payload,
+    muteHttpExceptions: true
+  });
+
+  const body = JSON.parse(response.getContentText());
+  if (response.getResponseCode() >= 300) {
+    throw new Error('Stripe error: ' + (body.error && body.error.message ? body.error.message : response.getContentText()));
+  }
+  return body;
+}
+
+// Creates a one-off Stripe Price for the invoice total, then a Payment
+// Link pointing at it, and logs the result to the Monthly Invoice tab.
+function createInvoice_(params) {
+  const customerName = params.customer_name || '';
+  const billingMonth = params.billing_month || getCurrentBillingMonth_();
+  const amount = Number(params.amount) || 0;
+
+  if (amount <= 0) {
+    return { error: 'Invoice amount must be greater than 0.' };
+  }
+
+  const amountCents = Math.round(amount * 100);
+
+  const price = stripeRequest_('prices', {
+    'currency': 'usd',
+    'unit_amount': String(amountCents),
+    'product_data[name]': 'Pool Service - ' + customerName + ' - ' + billingMonth
+  });
+
+  const paymentLink = stripeRequest_('payment_links', {
+    'line_items[0][price]': price.id,
+    'line_items[0][quantity]': '1'
+  });
+
+  logInvoice_(params, billingMonth, amount, paymentLink.url);
+
+  return { url: paymentLink.url };
+}
+
+function logInvoice_(params, billingMonth, amount, url) {
+  const ss = getSpreadsheet_();
+  const sheet = getSheetByNames_(ss, MONTHLY_INVOICE_SHEET_NAMES);
+  if (!sheet) return;
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(h => String(h).trim());
+
+  const valueMap = {
+    'Date': Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+    'Customer ID': params.customer_id || '',
+    'Customer Name': params.customer_name || '',
+    'Billing Month': billingMonth,
+    'Service Fee': Number(params.service_fee) || 0,
+    'Chemical Charges': Number(params.chemical_total) || 0,
+    'Total': amount,
+    'Payment Link': url,
+    'Status': 'Sent'
+  };
+
+  const row = headers.map(h => (h in valueMap) ? valueMap[h] : '');
+  sheet.appendRow(row);
 }
 
 function buildEmailBody_(params, chemicals, photosHtml) {
